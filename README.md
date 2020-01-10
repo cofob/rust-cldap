@@ -42,6 +42,27 @@ fn main() {
 }
 ```
 
+### Security
+
+You should use *start_tls* before calling bind to avoid sending credentials in plain text over an untrusted 
+network. See https://linux.die.net/man/3/ldap_start_tls_s for more information
+
+```rust
+fn some_ldap_function(ldap_uri: &str, ldap_user: &str, ldap_pass: &str) -> Result<(), LDAPError> {
+    let ldap = try!(RustLDAP::new(ldap_uri));
+
+    ldap.set_option(codes::options::LDAP_OPT_PROTOCOL_VERSION,
+                    &codes::versions::LDAP_VERSION3);
+
+    ldap.set_option(codes::options::LDAP_OPT_X_TLS_REQUIRE_CERT,
+                    &codes::options::LDAP_OPT_X_TLS_DEMAND);
+    ldap.set_option(openldap::codes::options::LDAP_OPT_X_TLS_NEWCTX, &0);
+    ldap.start_tls(None, None);
+
+    try!(ldap.simple_bind(ldap_user, ldap_pass));
+}    
+
+```
 When performing an operation that can fail, use the `try!` macro. On failure,
 an `openldap::errors::LDAPError` will be returned that includes a detailed
 message from the native OpenLDAP library.

@@ -10,6 +10,7 @@ use std::ffi::{CStr, CString};
 use std::ptr;
 use std::slice;
 use std::boxed;
+use std::ptr::null_mut;
 
 pub mod codes;
 pub mod errors;
@@ -78,6 +79,9 @@ extern "C" {
                          sctrls: *mut *mut LDAPControl,
                          cctrls: *mut *mut LDAPControl)
                          -> c_int;
+    fn ldap_start_tls_s(ldap: *mut LDAP,
+                        scrtrls: *mut *mut LDAPControl,
+                        cctrls: *mut *mut LDAPControl) -> c_int;
 }
 
 /// A typedef for an `LDAPResponse` type.
@@ -268,6 +272,55 @@ impl RustLDAP {
                          None,
                          ptr::null_mut(),
                          -1)
+    }
+
+    /// Installs TLS handlers on the session
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use openldap::RustLDAP;
+    /// let ldap = RustLDAP::new(&"ldaps://myserver:636");
+    ///
+    /// ldap.set_option(
+    ///     openldap::codes::options::LDAP_OPT_PROTOCOL_VERSION,
+    ///     &openldap::codes::versions::LDAP_VERSION3,
+    /// );
+    ///
+    /// ldap.set_option(
+    ///     openldap::codes::options::LDAP_OPT_X_TLS_REQUIRE_CERT,
+    ///     &openldap::codes::options::LDAP_OPT_X_TLS_ALLOW,
+    /// );
+    ///
+    /// ldap.set_option(openldap::codes::options::LDAP_OPT_X_TLS_NEWCTX, &0);
+    ///
+    /// ldap.start_tls(None, None);
+    /// ldap.simple_bind("some-dn", "some-password").unwrap()
+    /// ```
+    pub fn start_tls(&self, serverctrls: Option<*mut *mut LDAPControl>, clientctrls: Option<*mut *mut LDAPControl>) -> Result<i32, errors::LDAPError> {
+        let r_serverctrls = match serverctrls {
+            Some(sc) => sc,
+            None => ptr::null_mut(),
+        };
+
+        let r_clientctrls = match clientctrls {
+            Some(cc) => cc,
+            None => ptr::null_mut(),
+        };
+
+        unsafe {
+            let res = ldap_start_tls_s(self.ldap_ptr, r_serverctrls, r_clientctrls);
+
+            if res < 0 {
+                let raw_estr = ldap_err2string(res as c_int);
+                return Err(errors::LDAPError::NativeError(CStr::from_ptr(raw_estr)
+                    .to_owned()
+                    .into_string()
+                    .unwrap()));
+            }
+
+            Ok(res)
+        }
     }
 
     /// Advanced synchronous search.
@@ -482,6 +535,32 @@ mod tests {
         println!("Bind result: {:?}", res);
 
     }
+
+    #[test]
+    fn test_simple_bind_with_start_tls() {
+        let ldap = super::RustLDAP::new(TEST_ADDRESS).unwrap();
+
+        assert!(ldap.set_option(codes::options::LDAP_OPT_PROTOCOL_VERSION, &3));
+        ldap.start_tls(None, None);
+
+        ldap.set_option(
+            codes::options::LDAP_OPT_PROTOCOL_VERSION,
+            &codes::versions::LDAP_VERSION3,
+        );
+
+        ldap.set_option(
+            codes::options::LDAP_OPT_X_TLS_REQUIRE_CERT,
+            &codes::options::LDAP_OPT_X_TLS_ALLOW,
+        );
+
+        ldap.set_option(codes::options::LDAP_OPT_X_TLS_NEWCTX, &0);
+
+        let res = ldap.simple_bind(TEST_BIND_DN, TEST_BIND_PASS).unwrap();
+        assert_eq!(codes::results::LDAP_SUCCESS, res);
+        println!("Bind result: {:?}", res);
+
+    }
+
 
     #[test]
     fn test_simple_search() {
