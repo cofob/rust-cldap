@@ -15,8 +15,7 @@ use openldap::*;
 use openldap::errors::*;
 
 fn some_ldap_function(ldap_uri: &str, ldap_user: &str, ldap_pass: &str) -> Result<(), LDAPError> {
-
-    let ldap = try!(RustLDAP::new(ldap_uri));
+    let ldap = RustLDAP::new(ldap_uri).unwrap();
 
     ldap.set_option(codes::options::LDAP_OPT_PROTOCOL_VERSION,
                     &codes::versions::LDAP_VERSION3);
@@ -24,7 +23,7 @@ fn some_ldap_function(ldap_uri: &str, ldap_user: &str, ldap_pass: &str) -> Resul
     ldap.set_option(codes::options::LDAP_OPT_X_TLS_REQUIRE_CERT,
                     &codes::options::LDAP_OPT_X_TLS_DEMAND);
 
-    try!(ldap.simple_bind(ldap_user, ldap_pass));
+    ldap.simple_bind(ldap_user, ldap_pass).unwrap();
 
     // Returns a LDAPResponse, a.k.a. Vec<HashMap<String,Vec<String>>>.
     let _ = ldap.simple_search("CN=Stephen,OU=People,DC=Earth",
@@ -49,7 +48,7 @@ network. See https://linux.die.net/man/3/ldap_start_tls_s for more information
 
 ```rust
 fn some_ldap_function(ldap_uri: &str, ldap_user: &str, ldap_pass: &str) -> Result<(), LDAPError> {
-    let ldap = try!(RustLDAP::new(ldap_uri));
+    let ldap = RustLDAP::new(ldap_uri).unwrap();
 
     ldap.set_option(codes::options::LDAP_OPT_PROTOCOL_VERSION,
                     &codes::versions::LDAP_VERSION3);
@@ -57,14 +56,16 @@ fn some_ldap_function(ldap_uri: &str, ldap_user: &str, ldap_pass: &str) -> Resul
     ldap.set_option(codes::options::LDAP_OPT_X_TLS_REQUIRE_CERT,
                     &codes::options::LDAP_OPT_X_TLS_DEMAND);
     ldap.set_option(openldap::codes::options::LDAP_OPT_X_TLS_NEWCTX, &0);
+
     ldap.start_tls(None, None);
 
-    try!(ldap.simple_bind(ldap_user, ldap_pass));
+    ldap.simple_bind(ldap_user, ldap_pass).unwrap();
+
+    Ok(())
 }    
 
 ```
-When performing an operation that can fail, use the `try!` macro. On failure,
-an `openldap::errors::LDAPError` will be returned that includes a detailed
+On failure, an `openldap::errors::LDAPError` will be returned that includes a detailed
 message from the native OpenLDAP library.
 
 ## contributing
