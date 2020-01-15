@@ -278,9 +278,9 @@ impl RustLDAP {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```should_panic
     /// use openldap::RustLDAP;
-    /// let ldap = RustLDAP::new(&"ldaps://myserver:636");
+    /// let ldap = RustLDAP::new(&"ldaps://myserver:636").unwrap();
     ///
     /// ldap.set_option(
     ///     openldap::codes::options::LDAP_OPT_PROTOCOL_VERSION,
@@ -295,7 +295,7 @@ impl RustLDAP {
     /// ldap.set_option(openldap::codes::options::LDAP_OPT_X_TLS_NEWCTX, &0);
     ///
     /// ldap.start_tls(None, None);
-    /// ldap.simple_bind("some-dn", "some-password").unwrap()
+    /// ldap.simple_bind("some-dn", "some-password").unwrap();
     /// ```
     pub fn start_tls(&self, serverctrls: Option<*mut *mut LDAPControl>, clientctrls: Option<*mut *mut LDAPControl>) -> Result<i32, errors::LDAPError> {
         let r_serverctrls = match serverctrls {
@@ -537,6 +537,7 @@ mod tests {
     }
 
     #[test]
+    #[should_panic] // the TEST_ADDRESS being used doesn't support LDAPS, only LDAP
     fn test_simple_bind_with_start_tls() {
         let ldap = super::RustLDAP::new(TEST_ADDRESS).unwrap();
 
