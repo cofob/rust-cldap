@@ -36,7 +36,7 @@ extern "C" {
     fn ber_free(ber: *const BerElement, freebuf: c_int);
 }
 
-#[link(name = "ldap_r")]
+#[link(name = "ldap")]
 #[allow(improper_ctypes)]
 extern "C" {
     static ber_pvt_opt_on: c_char;
