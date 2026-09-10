@@ -1,3 +1,5 @@
+> **Archival notice:** This repository is archived and no longer maintained.
+
 # openldap
 
 Rust bindings for the native OpenLDAP library with a few convenient
